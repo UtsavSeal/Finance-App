@@ -11,11 +11,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- React + Babel + libs from CDN (no build step) -->
+<!-- IMPORTANT: prop-types and react-is must load BEFORE Recharts UMD,
+     because Recharts externalizes both. Order matters. -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-is@18.3.1/umd/react-is.production.min.js"></script>
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <style>
   :root {
@@ -578,6 +582,36 @@
       <p style="font-style: italic; color: var(--muted);">Preparing the books…</p>
     </div>
   </div>
+
+<script>
+  // Surface any script error to the page instead of leaving the user
+  // staring at "Preparing the books…" forever.
+  window.addEventListener('error', function (e) {
+    var root = document.getElementById('root');
+    if (root && root.querySelector('.loading-screen')) {
+      root.innerHTML = '<div class="loading-screen">' +
+        '<h1>The Ledger</h1>' +
+        '<p style="color: var(--red); font-style: italic; max-width: 520px; text-align: center;">' +
+        'Something went wrong loading the app:<br><code style="font-family: JetBrains Mono, monospace; font-size: 12px;">' +
+        (e.message || 'unknown error') + '</code><br><br>' +
+        'Try a hard refresh (Ctrl+Shift+R / Cmd+Shift+R). If it persists, a CDN may be blocked by your network.' +
+        '</p></div>';
+    }
+  });
+
+  // Sanity check libraries before Babel tries to compile the JSX.
+  window.addEventListener('DOMContentLoaded', function () {
+    var missing = [];
+    if (typeof React === 'undefined') missing.push('React');
+    if (typeof ReactDOM === 'undefined') missing.push('ReactDOM');
+    if (typeof Recharts === 'undefined') missing.push('Recharts');
+    if (typeof Papa === 'undefined') missing.push('PapaParse');
+    if (typeof Babel === 'undefined') missing.push('Babel');
+    if (missing.length) {
+      throw new Error('Failed to load: ' + missing.join(', ') + '. Check your internet connection.');
+    }
+  });
+</script>
 
 <script type="text/babel" data-presets="react">
 const { useState, useMemo, useEffect } = React;
