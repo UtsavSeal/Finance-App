@@ -1,0 +1,53 @@
+Date,Description,Category,Amount,Type,Payment Method,Account,Tags,Notes
+2025-11-01,Salary - November,Income,85000,Income,Bank Transfer,HDFC Savings,salary;monthly,Regular monthly salary credit
+2025-11-02,Rent - November,Housing,22000,Expense,Bank Transfer,HDFC Savings,rent;fixed,Apartment rent paid to landlord
+2025-11-03,BigBasket groceries,Food,4200,Expense,UPI,Paytm,groceries;essentials,Weekly grocery shopping
+2025-11-04,Electricity bill,Utilities,1850,Expense,UPI,Paytm,bills;fixed,Tata Power monthly bill
+2025-11-05,Petrol - HP Petrol Pump,Transport,2400,Expense,Credit Card,HDFC Credit,fuel;car,Full tank refuel
+2025-11-06,Dinner at Indigo,Dining,3100,Expense,Credit Card,HDFC Credit,restaurant;weekend,Anniversary dinner
+2025-11-08,Amazon - Programming books,Shopping,1850,Expense,Credit Card,HDFC Credit,books;education,Self-improvement
+2025-11-09,Jio Fiber internet,Utilities,999,Expense,UPI,Paytm,bills;subscription,Monthly broadband
+2025-11-10,PVR movie tickets,Entertainment,800,Expense,Debit Card,HDFC Savings,movies;weekend,Saturday show
+2025-11-12,Uber rides this week,Transport,1450,Expense,UPI,Google Pay,cabs;commute,Multiple short trips
+2025-11-14,Freelance design project,Income,18000,Income,Bank Transfer,HDFC Savings,freelance;side-hustle,Logo design client
+2025-11-15,Cult.fit gym membership,Health,2000,Expense,Credit Card,HDFC Credit,fitness;subscription,Monthly membership
+2025-11-18,Starbucks coffees,Dining,1240,Expense,UPI,Paytm,coffee;treats,Multiple visits
+2025-11-20,Sony WH-1000XM5 headphones,Shopping,29900,Expense,Credit Card,HDFC Credit,electronics;splurge,Long-awaited purchase
+2025-11-22,Mutual fund SIP,Investment,10000,Expense,Bank Transfer,HDFC Savings,investment;sip,Monthly SIP - Nifty 50 Index
+2025-11-25,Medicine - Apollo Pharmacy,Health,680,Expense,UPI,Paytm,medicine;health,Vitamins and cold medicine
+2025-11-27,Birthday gift for mom,Personal,3500,Expense,Credit Card,HDFC Credit,gifts;family,Saree from Nalli
+2025-11-30,Dividend received,Income,1250,Income,Bank Transfer,Zerodha,dividend;passive,ITC dividend payout
+2025-12-01,Salary - December,Income,85000,Income,Bank Transfer,HDFC Savings,salary;monthly,Regular monthly salary
+2025-12-02,Rent - December,Housing,22000,Expense,Bank Transfer,HDFC Savings,rent;fixed,Apartment rent
+2025-12-03,Groceries - DMart,Food,5100,Expense,Debit Card,HDFC Savings,groceries;essentials,Big monthly run
+2025-12-05,Electricity bill,Utilities,2100,Expense,UPI,Paytm,bills;fixed,Higher AC usage
+2025-12-07,Diwali shopping - clothes,Shopping,12500,Expense,Credit Card,HDFC Credit,festival;clothes,Festive purchases
+2025-12-08,Sweets and decorations,Personal,3200,Expense,UPI,Paytm,festival;diwali,Family celebrations
+2025-12-10,Restaurants this week,Dining,4200,Expense,Credit Card,HDFC Credit,dining;weekend,Multiple meals out
+2025-12-12,Petrol,Transport,2800,Expense,Credit Card,HDFC Credit,fuel;car,Car refuel
+2025-12-14,Doctor consultation,Health,1500,Expense,UPI,Paytm,health;doctor,General checkup
+2025-12-15,Spotify Premium,Entertainment,119,Expense,Credit Card,HDFC Credit,subscription;music,Monthly subscription
+2025-12-16,Netflix subscription,Entertainment,649,Expense,Credit Card,HDFC Credit,subscription;streaming,Monthly Netflix
+2025-12-18,Udemy course - React,Education,4999,Expense,Credit Card,HDFC Credit,course;learning,Black Friday deal
+2025-12-20,Airport cab,Transport,1100,Expense,UPI,Google Pay,travel;cab,To Mumbai airport
+2025-12-21,Flight tickets - Goa,Transport,8500,Expense,Credit Card,HDFC Credit,travel;vacation,Year-end trip
+2025-12-22,Hotel - Goa beachside,Travel,18000,Expense,Credit Card,HDFC Credit,travel;vacation,3-night stay
+2025-12-23,Family dinner,Dining,5400,Expense,Credit Card,HDFC Credit,family;dining,Christmas eve dinner
+2025-12-24,Christmas gifts,Personal,6800,Expense,Credit Card,HDFC Credit,gifts;christmas,Family gift exchange
+2025-12-26,Goa restaurants and bars,Dining,7200,Expense,Credit Card,HDFC Credit,travel;dining,Vacation dining
+2025-12-28,Year-end bonus,Income,25000,Income,Bank Transfer,HDFC Savings,bonus;work,Performance bonus
+2025-12-30,Stock dividend - HDFC,Income,2100,Income,Bank Transfer,Zerodha,dividend;passive,Quarterly dividend
+2026-01-01,Salary - January,Income,88000,Income,Bank Transfer,HDFC Savings,salary;monthly,Includes 3% raise
+2026-01-02,Rent - January,Housing,22000,Expense,Bank Transfer,HDFC Savings,rent;fixed,Monthly rent
+2026-01-04,Groceries weekly,Food,4800,Expense,UPI,Paytm,groceries;essentials,Weekly run
+2026-01-05,Phone recharge - Jio,Utilities,799,Expense,UPI,Paytm,bills;phone,Monthly mobile plan
+2026-01-08,Streaming subscriptions,Entertainment,1200,Expense,Credit Card,HDFC Credit,subscriptions;bundle,Various services
+2026-01-10,Petrol,Transport,2600,Expense,Credit Card,HDFC Credit,fuel;car,Refuel
+2026-01-12,Dining out - Friday night,Dining,3800,Expense,Credit Card,HDFC Credit,dining;weekend,Friends dinner
+2026-01-15,Mutual fund SIP,Investment,10000,Expense,Bank Transfer,HDFC Savings,investment;sip,Monthly SIP
+2026-01-17,Winter jacket,Shopping,4500,Expense,Credit Card,HDFC Credit,clothes;essential,Cold weather prep
+2026-01-20,Cult.fit gym,Health,2000,Expense,Credit Card,HDFC Credit,fitness;subscription,Monthly membership
+2026-01-22,Books - Crossword,Education,1850,Expense,Debit Card,HDFC Savings,books;learning,3 books bought
+2026-01-25,Salon visit,Personal,1500,Expense,UPI,Paytm,grooming;personal,Haircut and styling
+2026-01-28,Side project payment,Income,12000,Income,Bank Transfer,HDFC Savings,freelance;side-hustle,Web dev project
+2026-01-30,Electricity bill,Utilities,1950,Expense,UPI,Paytm,bills;fixed,Monthly bill
