@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Ledger — Personal Finance Tracker</title>
+<meta name="description" content="An editorial personal finance tracker that reads from your Google Sheet." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- React + Babel + libs from CDN (no build step) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+
+<style>
+  :root {
+    --ink: #1a1612;
+    --parch: #f4ead5;
+    --parch-d: #e8dcc0;
+    --parch-l: #faf3e0;
+    --red: #a8321e;
+    --green: #3d5a3a;
+    --ochre: #b8893d;
+    --blue: #2c4a6b;
+    --muted: #6b5d4d;
+  }
+
+  html, body { margin: 0; padding: 0; background: var(--parch); }
+  body {
+    font-family: 'Spectral', Georgia, serif;
+    color: var(--ink);
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(168, 50, 30, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(44, 74, 107, 0.04) 0%, transparent 40%),
+      repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(26, 22, 18, 0.015) 2px, rgba(26, 22, 18, 0.015) 3px);
+    min-height: 100vh;
+  }
+
+  .ft-root {
+    padding: 32px 28px 60px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  /* MASTHEAD */
+  .masthead {
+    border-top: 3px double var(--ink);
+    border-bottom: 3px double var(--ink);
+    padding: 18px 0 20px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  .masthead-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 16px;
+  }
+  .masthead-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(48px, 8vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    margin: 0;
+    font-style: italic;
+  }
+  .masthead-sub {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 14px;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .rule {
+    flex: 0 0 60px;
+    height: 1px;
+    background: var(--ink);
+    display: inline-block;
+  }
+  .masthead-sub .rule { flex: 0 0 80px; }
+
+  /* CONNECTOR */
+  .connector {
+    background: var(--parch-l);
+    border: 1px solid var(--ink);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .connector::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--ink);
+    opacity: 0.2;
+    pointer-events: none;
+  }
+  .connector-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .connector-row {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .connector-input {
+    flex: 1;
+    background: var(--parch);
+    border: 1px solid var(--ink);
+    padding: 10px 14px;
+    font-family: 'Spectral', serif;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    min-width: 0;
+  }
+  .connector-input:focus { background: white; }
+  .connector-btn {
+    background: var(--ink);
+    color: var(--parch);
+    border: 1px solid var(--ink);
+    padding: 0 18px;
+    font-family: 'Spectral', serif;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .connector-btn:hover:not(:disabled) { background: var(--red); border-color: var(--red); }
+  .connector-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .connector-btn-ghost {
+    background: transparent;
+    color: var(--ink);
+  }
+  .connector-btn-ghost:hover:not(:disabled) {
+    background: var(--ink);
+    color: var(--parch);
+  }
+  .connector-error {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(168, 50, 30, 0.08);
+    border-left: 3px solid var(--red);
+    color: var(--red);
+    font-size: 13px;
+    position: relative;
+    z-index: 1;
+  }
+  .connector-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    position: relative;
+    z-index: 1;
+  }
+  .connector-hint a { color: var(--red); text-decoration: underline; }
+
+  /* DATE FILTER PANEL */
+  .date-panel {
+    background: var(--parch-l);
+    border: 1px solid var(--ink);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .date-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: var(--parch);
+    border-bottom: 1px solid var(--ink);
+  }
+  .date-panel-head-l {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 17px;
+  }
+  .date-panel-head-r {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .date-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--muted);
+  }
+  .date-tab {
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--muted);
+    padding: 8px 16px;
+    font-family: 'Spectral', serif;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .date-tab:hover { background: var(--parch-d); color: var(--ink); }
+  .date-tab.active {
+    background: var(--ink);
+    color: var(--parch);
+    border-right-color: var(--ink);
+  }
+
+  .date-body { padding: 14px 18px; }
+  .preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .preset-pill {
+    background: transparent;
+    border: 1px solid var(--muted);
+    padding: 5px 12px;
+    font-family: 'Spectral', serif;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+  .preset-pill:hover { background: var(--parch-d); }
+  .preset-pill.active {
+    background: var(--ink);
+    color: var(--parch);
+    border-color: var(--ink);
+  }
+
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
+  }
+
+  .year-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .custom-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .custom-row label {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .date-input {
+    background: var(--parch);
+    border: 1px solid var(--ink);
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+    outline: none;
+  }
+  .compare-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* HEADLINE STATS */
+  .headline-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border: 1px solid var(--ink);
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    padding: 20px 22px;
+    border-right: 1px solid var(--ink);
+    background: var(--parch-l);
+  }
+  .stat-card:last-child { border-right: none; }
+  .stat-primary { background: var(--ink); color: var(--parch); }
+  .stat-primary .stat-label { color: var(--parch-d); }
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .stat-value.pos { color: var(--green); }
+  .stat-value.neg { color: var(--red); }
+  .stat-primary .stat-value.pos { color: #8fb38a; }
+  .stat-primary .stat-value.neg { color: #d97c69; }
+  .stat-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .stat-meta.pos { color: var(--green); }
+  .stat-meta.neg { color: var(--red); }
+  .stat-primary .stat-meta { color: var(--parch-d); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--ink); border-bottom-color: var(--red); font-weight: 700; }
+
+  /* PANELS */
+  .content-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .panel {
+    background: var(--parch-l);
+    border: 1px solid var(--ink);
+    overflow: hidden;
+  }
+  .panel-wide { grid-column: span 2; }
+  .panel-full { grid-column: span 3; }
+  .panel-head { padding: 14px 20px; border-bottom: 1px solid var(--ink); background: var(--parch); }
+  .panel-head h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .panel-sub {
+    display: block;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .panel-body { padding: 20px; }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+
+  /* CATEGORY LEGEND */
+  .cat-legend { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+  .cat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px dotted var(--muted);
+  }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-row-l { display: flex; align-items: center; gap: 8px; }
+  .cat-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .cat-name { font-size: 14px; }
+  .cat-row-r { display: flex; align-items: baseline; gap: 8px; }
+  .cat-amt { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 15px; }
+  .cat-pct { font-size: 12px; color: var(--muted); font-style: italic; }
+
+  .merchant-list { list-style: none; padding: 0; margin: 0; }
+  .merchant-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dotted var(--muted);
+  }
+  .merchant-row:last-child { border-bottom: none; }
+  .merchant-rank { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); min-width: 22px; }
+  .merchant-info { flex: 1; min-width: 0; }
+  .merchant-name {
+    font-size: 14px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .merchant-meta { font-size: 11px; color: var(--muted); display: flex; gap: 4px; font-style: italic; }
+  .merchant-amt { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 15px; }
+
+  .ledger-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ledger-table th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--ink);
+    font-weight: 500;
+    background: var(--parch);
+    position: sticky;
+    top: 0;
+  }
+  .ledger-table th.num, .ledger-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .ledger-table td { padding: 10px; border-bottom: 1px dotted var(--muted); }
+  .ledger-table tr:hover td { background: var(--parch-d); }
+  .ledger-table td.pos { color: var(--green); font-weight: 500; }
+  .ledger-table td.neg { color: var(--red); font-weight: 500; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .ledger-wrap { max-height: 600px; overflow-y: auto; }
+
+  .dist-bar { background: var(--parch-d); height: 8px; width: 100%; border: 1px solid var(--ink); }
+  .dist-fill { height: 100%; }
+
+  .type-tag {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border: 1px solid var(--muted);
+  }
+  .type-tag.income { color: var(--green); border-color: var(--green); }
+  .type-tag.expense { color: var(--red); border-color: var(--red); }
+
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .comp-block {
+    border: 1px solid var(--ink);
+    padding: 16px;
+    background: var(--parch-l);
+  }
+  .comp-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .comp-period {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .comp-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px dotted var(--muted);
+  }
+  .comp-stat:last-child { border-bottom: none; }
+  .comp-stat-l { font-size: 13px; color: var(--muted); }
+  .comp-stat-r { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 16px; }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--ink);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .footer .rule { flex: 0 0 100px; }
+
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) {
+    .ft-root { padding: 16px 12px 40px; }
+    .headline-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat-card { border-right: none; border-bottom: 1px solid var(--ink); }
+    .stat-card:nth-child(odd) { border-right: 1px solid var(--ink); }
+    .stat-card:nth-last-child(-n+2) { border-bottom: none; }
+    .content-grid { grid-template-columns: 1fr; }
+    .panel-wide, .panel-full { grid-column: span 1; }
+    .two-col { grid-template-columns: 1fr; }
+    .connector-row { flex-direction: column; }
+    .connector-btn { padding: 10px; justify-content: center; }
+    .comparison-grid { grid-template-columns: 1fr; }
+    .masthead-top { font-size: 9px; }
+  }
+
+  /* Loading state */
+  .loading-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .loading-screen h1 {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 48px;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading-screen">
+      <h1>The Ledger</h1>
+      <p style="font-style: italic; color: var(--muted);">Preparing the books…</p>
+    </div>
+  </div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect } = React;
+const {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, AreaChart, Area, Legend
+} = Recharts;
+
+// ---------- icons (inline SVG to avoid lucide dependency) ----------
+const Icon = ({ d, size = 14 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const IconBook = (p) => <Icon size={p.size} d={<><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></>} />;
+const IconRefresh = (p) => <Icon size={p.size} d={<><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></>} />;
+const IconFile = (p) => <Icon size={p.size} d={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>} />;
+const IconUp = (p) => <Icon size={p.size} d={<><polyline points="6 9 12 15 18 9" transform="rotate(180 12 12)"/></>} />;
+const IconDown = (p) => <Icon size={p.size} d={<><polyline points="6 9 12 15 18 9"/></>} />;
+const IconAlert = (p) => <Icon size={p.size} d={<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>} />;
+const IconCal = (p) => <Icon size={p.size} d={<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>} />;
+const IconDownload = (p) => <Icon size={p.size} d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />;
+
+// ---------- helpers ----------
+const fmt = (n) => {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+};
+const fmtCompact = (n) => {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  if (Math.abs(n) >= 100000) return '₹' + (n / 100000).toFixed(1) + 'L';
+  if (Math.abs(n) >= 1000) return '₹' + (n / 1000).toFixed(1) + 'K';
+  return '₹' + n.toFixed(0);
+};
+
+const parseDate = (s) => {
+  if (!s) return null;
+  const trimmed = String(s).trim();
+  // ISO first
+  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(trimmed)) {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d;
+  }
+  // try DD/MM/YYYY or DD-MM-YYYY (Indian)
+  const parts = trimmed.split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    let [a, b, c] = parts.map(p => parseInt(p, 10));
+    if (c < 100) c += 2000;
+    const d = new Date(c, b - 1, a);
+    if (!isNaN(d.getTime())) return d;
+  }
+  // fallback
+  const d = new Date(trimmed);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+const toISO = (d) => {
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const monthKey = (d) => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : 'unknown';
+const monthLabel = (k) => {
+  const [y, m] = k.split('-');
+  return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+};
+const monthLabelLong = (k) => {
+  const [y, m] = k.split('-');
+  return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
+const quarterOf = (d) => Math.floor(d.getMonth() / 3) + 1;
+const quarterKey = (d) => d ? `${d.getFullYear()}-Q${quarterOf(d)}` : '';
+
+// ---------- sample data (fallback) ----------
+const SAMPLE_CSV = `Date,Description,Category,Amount,Type
+2025-11-02,Salary,Income,85000,Income
+2025-11-03,Rent,Housing,22000,Expense
+2025-11-03,Groceries,Food,4200,Expense
+2025-11-05,Electricity bill,Utilities,1850,Expense
+2025-11-06,Petrol,Transport,2400,Expense
+2025-11-08,Dinner out,Dining,3100,Expense
+2025-11-10,Books,Shopping,1850,Expense
+2025-11-14,Freelance,Income,18000,Income
+2025-11-20,Headphones,Shopping,6800,Expense
+2025-12-01,Salary,Income,85000,Income
+2025-12-02,Rent,Housing,22000,Expense
+2025-12-07,Diwali shopping,Shopping,12500,Expense
+2025-12-22,Hotel - Goa,Travel,18000,Expense
+2025-12-28,Bonus,Income,25000,Income
+2026-01-01,Salary,Income,88000,Income
+2026-01-02,Rent,Housing,22000,Expense
+2026-01-15,Mutual fund SIP,Investment,10000,Expense
+2026-01-22,Books,Education,1850,Expense
+2026-01-28,Side project,Income,12000,Income`;
+
+const parseInitial = () => {
+  const r = Papa.parse(SAMPLE_CSV, { skipEmptyLines: true });
+  return r.data;
+};
+
+// ---------- colors ----------
+const INK = '#1a1612';
+const PARCH = '#f4ead5';
+const RED = '#a8321e';
+const GREEN = '#3d5a3a';
+const MUTED = '#6b5d4d';
+
+const CATEGORY_COLORS = {
+  'Housing': '#2c4a6b',
+  'Food': '#b8893d',
+  'Dining': '#a8321e',
+  'Transport': '#6b8e23',
+  'Utilities': '#4a4a6b',
+  'Shopping': '#8b3a62',
+  'Entertainment': '#c87533',
+  'Health': '#3d5a3a',
+  'Education': '#5b4a8b',
+  'Travel': '#1e6091',
+  'Investment': '#2a5f3f',
+  'Personal': '#8b6f47',
+  'Income': '#3d5a3a',
+  'Other': '#6b5d4d',
+};
+const getCategoryColor = (cat) => CATEGORY_COLORS[cat] || '#6b5d4d';
+
+// ============ MAIN COMPONENT ============
+function FinanceTracker() {
+  const [rawRows, setRawRows] = useState(parseInitial());
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [tab, setTab] = useState('overview');
+
+  // Date filter state
+  const [dateMode, setDateMode] = useState('preset'); // preset | month | quarter | year | custom
+  const [preset, setPreset] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedQuarter, setSelectedQuarter] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [compareEnabled, setCompareEnabled] = useState(false);
+
+  // Persist sheet URL
+  useEffect(() => {
+    const saved = localStorage.getItem('ft_sheet_url');
+    if (saved) setSheetUrl(saved);
+  }, []);
+
+  // ---------- parse transactions ----------
+  const transactions = useMemo(() => {
+    if (!rawRows || rawRows.length < 2) return [];
+    const header = rawRows[0].map(h => String(h).toLowerCase().trim());
+    const idx = {
+      date: header.findIndex(h => h.includes('date')),
+      desc: header.findIndex(h => h.includes('desc') || h.includes('note') || h.includes('detail')),
+      category: header.findIndex(h => h.includes('categ')),
+      amount: header.findIndex(h => h.includes('amount') || h.includes('value')),
+      type: header.findIndex(h => h.includes('type') || h.includes('kind')),
+      payment: header.findIndex(h => h.includes('payment') || h.includes('method')),
+      account: header.findIndex(h => h.includes('account')),
+      tags: header.findIndex(h => h.includes('tag')),
+    };
+
+    return rawRows.slice(1)
+      .map((row, i) => {
+        const d = parseDate(row[idx.date]);
+        const amt = parseFloat(String(row[idx.amount] || '').replace(/[^\d.-]/g, ''));
+        const cat = String(row[idx.category] || 'Other').trim() || 'Other';
+        let type = String(row[idx.type] || '').trim().toLowerCase();
+        if (!type) type = (cat.toLowerCase() === 'income' || cat.toLowerCase() === 'salary') ? 'income' : 'expense';
+        return {
+          id: i,
+          date: d,
+          description: String(row[idx.desc] || '').trim(),
+          category: cat,
+          amount: isNaN(amt) ? 0 : Math.abs(amt),
+          type: type === 'income' ? 'income' : 'expense',
+          paymentMethod: idx.payment >= 0 ? String(row[idx.payment] || '').trim() : '',
+          account: idx.account >= 0 ? String(row[idx.account] || '').trim() : '',
+          tags: idx.tags >= 0 ? String(row[idx.tags] || '').trim() : '',
+          monthKey: monthKey(d),
+          quarterKey: quarterKey(d),
+          year: d ? d.getFullYear() : null,
+        };
+      })
+      .filter(t => t.date && t.amount > 0);
+  }, [rawRows]);
+
+  // Available time units
+  const availableMonths = useMemo(() => {
+    const set = new Set(transactions.map(t => t.monthKey));
+    return Array.from(set).sort().reverse();
+  }, [transactions]);
+
+  const availableQuarters = useMemo(() => {
+    const set = new Set(transactions.map(t => t.quarterKey));
+    return Array.from(set).sort().reverse();
+  }, [transactions]);
+
+  const availableYears = useMemo(() => {
+    const set = new Set(transactions.map(t => t.year));
+    return Array.from(set).sort().reverse();
+  }, [transactions]);
+
+  // Auto-pick latest when modes switch
+  useEffect(() => {
+    if (dateMode === 'month' && !selectedMonth && availableMonths.length) setSelectedMonth(availableMonths[0]);
+    if (dateMode === 'quarter' && !selectedQuarter && availableQuarters.length) setSelectedQuarter(availableQuarters[0]);
+    if (dateMode === 'year' && !selectedYear && availableYears.length) setSelectedYear(String(availableYears[0]));
+  }, [dateMode, availableMonths, availableQuarters, availableYears]);
+
+  // ---------- compute date range ----------
+  const { rangeStart, rangeEnd, rangeLabel, prevStart, prevEnd, prevLabel } = useMemo(() => {
+    const now = new Date();
+    let start = null, end = null, label = 'All Time';
+    let pStart = null, pEnd = null, pLabel = '';
+
+    if (dateMode === 'preset') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (preset === 'today') {
+        start = today; end = today; label = 'Today';
+        pStart = new Date(today); pStart.setDate(pStart.getDate() - 1);
+        pEnd = new Date(pStart); pLabel = 'Yesterday';
+      } else if (preset === '7d') {
+        end = today; start = new Date(today); start.setDate(start.getDate() - 6);
+        label = 'Last 7 days';
+        pEnd = new Date(start); pEnd.setDate(pEnd.getDate() - 1);
+        pStart = new Date(pEnd); pStart.setDate(pStart.getDate() - 6);
+        pLabel = 'Previous 7 days';
+      } else if (preset === '30d') {
+        end = today; start = new Date(today); start.setDate(start.getDate() - 29);
+        label = 'Last 30 days';
+        pEnd = new Date(start); pEnd.setDate(pEnd.getDate() - 1);
+        pStart = new Date(pEnd); pStart.setDate(pStart.getDate() - 29);
+        pLabel = 'Previous 30 days';
+      } else if (preset === '90d') {
+        end = today; start = new Date(today); start.setDate(start.getDate() - 89);
+        label = 'Last 90 days';
+        pEnd = new Date(start); pEnd.setDate(pEnd.getDate() - 1);
+        pStart = new Date(pEnd); pStart.setDate(pStart.getDate() - 89);
+        pLabel = 'Previous 90 days';
+      } else if (preset === 'mtd') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1); end = today;
+        label = 'Month to date';
+        pStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        pEnd = new Date(now.getFullYear(), now.getMonth() - 1, today.getDate());
+        pLabel = 'Same period last month';
+      } else if (preset === 'ytd') {
+        start = new Date(now.getFullYear(), 0, 1); end = today;
+        label = 'Year to date';
+        pStart = new Date(now.getFullYear() - 1, 0, 1);
+        pEnd = new Date(now.getFullYear() - 1, now.getMonth(), today.getDate());
+        pLabel = 'Same period last year';
+      } else if (preset === 'lastMonth') {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+        label = monthLabelLong(monthKey(start));
+        pStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        pEnd = new Date(now.getFullYear(), now.getMonth() - 1, 0);
+        pLabel = monthLabelLong(monthKey(pStart));
+      } else if (preset === 'thisYear') {
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31);
+        label = String(now.getFullYear());
+        pStart = new Date(now.getFullYear() - 1, 0, 1);
+        pEnd = new Date(now.getFullYear() - 1, 11, 31);
+        pLabel = String(now.getFullYear() - 1);
+      } else if (preset === 'lastYear') {
+        start = new Date(now.getFullYear() - 1, 0, 1);
+        end = new Date(now.getFullYear() - 1, 11, 31);
+        label = String(now.getFullYear() - 1);
+        pStart = new Date(now.getFullYear() - 2, 0, 1);
+        pEnd = new Date(now.getFullYear() - 2, 11, 31);
+        pLabel = String(now.getFullYear() - 2);
+      }
+    } else if (dateMode === 'month' && selectedMonth) {
+      const [y, m] = selectedMonth.split('-').map(Number);
+      start = new Date(y, m - 1, 1);
+      end = new Date(y, m, 0);
+      label = monthLabelLong(selectedMonth);
+      const idx = availableMonths.indexOf(selectedMonth);
+      if (idx >= 0 && idx < availableMonths.length - 1) {
+        const prev = availableMonths[idx + 1];
+        const [py, pm] = prev.split('-').map(Number);
+        pStart = new Date(py, pm - 1, 1);
+        pEnd = new Date(py, pm, 0);
+        pLabel = monthLabelLong(prev);
+      }
+    } else if (dateMode === 'quarter' && selectedQuarter) {
+      const [y, q] = selectedQuarter.split('-Q').map(Number);
+      const m0 = (q - 1) * 3;
+      start = new Date(y, m0, 1);
+      end = new Date(y, m0 + 3, 0);
+      label = `Q${q} ${y}`;
+      const idx = availableQuarters.indexOf(selectedQuarter);
+      if (idx >= 0 && idx < availableQuarters.length - 1) {
+        const prev = availableQuarters[idx + 1];
+        const [py, pq] = prev.split('-Q').map(Number);
+        const pm0 = (pq - 1) * 3;
+        pStart = new Date(py, pm0, 1);
+        pEnd = new Date(py, pm0 + 3, 0);
+        pLabel = `Q${pq} ${py}`;
+      }
+    } else if (dateMode === 'year' && selectedYear) {
+      const y = parseInt(selectedYear);
+      start = new Date(y, 0, 1);
+      end = new Date(y, 11, 31);
+      label = String(y);
+      pStart = new Date(y - 1, 0, 1);
+      pEnd = new Date(y - 1, 11, 31);
+      pLabel = String(y - 1);
+    } else if (dateMode === 'custom' && customStart && customEnd) {
+      start = parseDate(customStart);
+      end = parseDate(customEnd);
+      if (start && end) {
+        label = `${start.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} – ${end.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        pEnd = new Date(start); pEnd.setDate(pEnd.getDate() - 1);
+        pStart = new Date(pEnd); pStart.setDate(pStart.getDate() - days + 1);
+        pLabel = `Previous ${days} days`;
+      }
+    }
+
+    return { rangeStart: start, rangeEnd: end, rangeLabel: label, prevStart: pStart, prevEnd: pEnd, prevLabel: pLabel };
+  }, [dateMode, preset, selectedMonth, selectedQuarter, selectedYear, customStart, customEnd, availableMonths, availableQuarters]);
+
+  // Filter transactions to range
+  const filtered = useMemo(() => {
+    if (!rangeStart || !rangeEnd) return transactions;
+    const startMs = rangeStart.getTime();
+    const endMs = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate(), 23, 59, 59).getTime();
+    return transactions.filter(t => {
+      const ms = t.date.getTime();
+      return ms >= startMs && ms <= endMs;
+    });
+  }, [transactions, rangeStart, rangeEnd]);
+
+  const previousFiltered = useMemo(() => {
+    if (!prevStart || !prevEnd) return [];
+    const startMs = prevStart.getTime();
+    const endMs = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), prevEnd.getDate(), 23, 59, 59).getTime();
+    return transactions.filter(t => {
+      const ms = t.date.getTime();
+      return ms >= startMs && ms <= endMs;
+    });
+  }, [transactions, prevStart, prevEnd]);
+
+  // ---------- analytics ----------
+  const computeStats = (rows) => {
+    const income = rows.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = rows.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const net = income - expense;
+    const savingsRate = income > 0 ? (net / income) * 100 : 0;
+    const expenseCount = rows.filter(t => t.type === 'expense').length;
+    const avgExpense = expenseCount > 0 ? expense / expenseCount : 0;
+    return { income, expense, net, savingsRate, expenseCount, avgExpense };
+  };
+
+  const stats = useMemo(() => computeStats(filtered), [filtered]);
+  const prevStats = useMemo(() => computeStats(previousFiltered), [previousFiltered]);
+
+  const pctChange = (curr, prev) => {
+    if (!prev || prev === 0) return null;
+    return ((curr - prev) / Math.abs(prev)) * 100;
+  };
+
+  const categoryBreakdown = useMemo(() => {
+    const map = {};
+    filtered.filter(t => t.type === 'expense').forEach(t => {
+      map[t.category] = (map[t.category] || 0) + t.amount;
+    });
+    const total = Object.values(map).reduce((s, v) => s + v, 0);
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value, pct: total > 0 ? (value / total) * 100 : 0 }))
+      .sort((a, b) => b.value - a.value);
+  }, [filtered]);
+
+  const monthlyTrend = useMemo(() => {
+    const map = {};
+    transactions.forEach(t => {
+      if (!map[t.monthKey]) map[t.monthKey] = { month: t.monthKey, income: 0, expense: 0 };
+      if (t.type === 'income') map[t.monthKey].income += t.amount;
+      else map[t.monthKey].expense += t.amount;
+    });
+    return Object.values(map)
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(m => ({ ...m, label: monthLabel(m.month), net: m.income - m.expense }));
+  }, [transactions]);
+
+  const topMerchants = useMemo(() => {
+    const map = {};
+    filtered.filter(t => t.type === 'expense' && t.description).forEach(t => {
+      const key = t.description;
+      if (!map[key]) map[key] = { name: key, total: 0, count: 0, category: t.category };
+      map[key].total += t.amount;
+      map[key].count += 1;
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 8);
+  }, [filtered]);
+
+  // Daily spending pattern (for ranges <= 60 days)
+  const dailyPattern = useMemo(() => {
+    if (!rangeStart || !rangeEnd) return null;
+    const days = Math.ceil((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)) + 1;
+    if (days > 60 || days < 2) return null;
+    const map = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(rangeStart);
+      d.setDate(d.getDate() + i);
+      map[toISO(d)] = { date: toISO(d), label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), expense: 0, income: 0 };
+    }
+    filtered.forEach(t => {
+      const k = toISO(t.date);
+      if (map[k]) {
+        if (t.type === 'income') map[k].income += t.amount;
+        else map[k].expense += t.amount;
+      }
+    });
+    return Object.values(map);
+  }, [filtered, rangeStart, rangeEnd]);
+
+  // ---------- google sheets fetch ----------
+  const loadSheet = async () => {
+    if (!sheetUrl.trim()) {
+      setError('Paste a Google Sheets URL first.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    let csvUrl = sheetUrl.trim();
+    const idMatch = csvUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    const gidMatch = csvUrl.match(/[#&?]gid=([0-9]+)/);
+    if (idMatch) {
+      const id = idMatch[1];
+      const gid = gidMatch ? gidMatch[1] : '0';
+      csvUrl = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+    }
+
+    try {
+      const res = await fetch(csvUrl);
+      if (!res.ok) throw new Error(`Sheet returned ${res.status}. Make sure it's shared as "Anyone with the link can view".`);
+      const text = await res.text();
+      const parsed = Papa.parse(text, { skipEmptyLines: true });
+      if (parsed.data.length < 2) throw new Error('Sheet appears empty or malformed.');
+      setRawRows(parsed.data);
+      localStorage.setItem('ft_sheet_url', sheetUrl);
+      setError(null);
+    } catch (e) {
+      setError(e.message || 'Failed to load sheet.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const headers = 'Date,Description,Category,Amount,Type,Payment Method,Account,Tags,Notes\n';
+    const sample = '2026-01-15,Example expense,Food,500,Expense,UPI,Bank,groceries,Example entry\n';
+    const blob = new Blob([headers + sample], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'finance-tracker-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ============ RENDER ============
+  return (
+    <div className="ft-root">
+
+      {/* MASTHEAD */}
+      <header className="masthead">
+        <div className="masthead-top">
+          <div>VOL. I · NO. {filtered.length}</div>
+          <div>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div>EST. 2026</div>
+        </div>
+        <h1 className="masthead-title">The Ledger</h1>
+        <div className="masthead-sub">
+          <span className="rule"></span>
+          <span>A Personal Record of Pecuniary Affairs</span>
+          <span className="rule"></span>
+        </div>
+      </header>
+
+      {/* CONNECTOR */}
+      <section className="connector">
+        <div className="connector-label">
+          <IconBook size={14} />
+          <span>Connect your Google Sheet</span>
+        </div>
+        <div className="connector-row">
+          <input
+            type="text"
+            value={sheetUrl}
+            onChange={(e) => setSheetUrl(e.target.value)}
+            placeholder="Paste your Google Sheets URL (sharing must be 'Anyone with link')"
+            className="connector-input"
+          />
+          <button onClick={loadSheet} disabled={loading} className="connector-btn">
+            {loading ? <IconRefresh size={14} /> : <IconFile size={14} />}
+            <span>{loading ? 'Fetching…' : 'Load Sheet'}</span>
+          </button>
+          <button onClick={downloadTemplate} className="connector-btn connector-btn-ghost">
+            <IconDownload size={14} />
+            <span>Template</span>
+          </button>
+        </div>
+        {error && <div className="connector-error"><IconAlert size={13} /> {error}</div>}
+        <div className="connector-hint">
+          Expected columns: <em>Date · Description · Category · Amount · Type</em> (extra columns supported: Payment Method, Account, Tags, Notes).
+          {' '}Download the template above for the full structure.
+        </div>
+      </section>
+
+      {/* DATE FILTER */}
+      <section className="date-panel">
+        <div className="date-panel-head">
+          <div className="date-panel-head-l">
+            <IconCal size={14} /> &nbsp; {rangeLabel}
+          </div>
+          <div className="date-panel-head-r">{filtered.length} entries in range</div>
+        </div>
+        <div className="date-tabs">
+          {[
+            ['preset', 'Quick'],
+            ['month', 'By Month'],
+            ['quarter', 'By Quarter'],
+            ['year', 'By Year'],
+            ['custom', 'Custom Range'],
+          ].map(([k, label]) => (
+            <button key={k} onClick={() => setDateMode(k)} className={`date-tab ${dateMode === k ? 'active' : ''}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="date-body">
+          {dateMode === 'preset' && (
+            <div className="preset-row">
+              {[
+                ['all', 'All Time'],
+                ['today', 'Today'],
+                ['7d', 'Last 7 days'],
+                ['30d', 'Last 30 days'],
+                ['90d', 'Last 90 days'],
+                ['mtd', 'Month to date'],
+                ['lastMonth', 'Last month'],
+                ['ytd', 'Year to date'],
+                ['thisYear', 'This year'],
+                ['lastYear', 'Last year'],
+              ].map(([k, label]) => (
+                <button key={k} onClick={() => setPreset(k)} className={`preset-pill ${preset === k ? 'active' : ''}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {dateMode === 'month' && (
+            <div className="month-grid">
+              {availableMonths.map(m => (
+                <button key={m} onClick={() => setSelectedMonth(m)} className={`preset-pill ${selectedMonth === m ? 'active' : ''}`}>
+                  {monthLabel(m)}
+                </button>
+              ))}
+              {availableMonths.length === 0 && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>No data yet</span>}
+            </div>
+          )}
+          {dateMode === 'quarter' && (
+            <div className="year-row">
+              {availableQuarters.map(q => (
+                <button key={q} onClick={() => setSelectedQuarter(q)} className={`preset-pill ${selectedQuarter === q ? 'active' : ''}`}>
+                  {q}
+                </button>
+              ))}
+              {availableQuarters.length === 0 && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>No data yet</span>}
+            </div>
+          )}
+          {dateMode === 'year' && (
+            <div className="year-row">
+              {availableYears.map(y => (
+                <button key={y} onClick={() => setSelectedYear(String(y))} className={`preset-pill ${selectedYear === String(y) ? 'active' : ''}`}>
+                  {y}
+                </button>
+              ))}
+              {availableYears.length === 0 && <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>No data yet</span>}
+            </div>
+          )}
+          {dateMode === 'custom' && (
+            <div className="custom-row">
+              <label>From: <input type="date" className="date-input" value={customStart} onChange={(e) => setCustomStart(e.target.value)} /></label>
+              <label>To: <input type="date" className="date-input" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} /></label>
+            </div>
+          )}
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <label className="compare-toggle">
+              <input type="checkbox" checked={compareEnabled} onChange={(e) => setCompareEnabled(e.target.checked)} />
+              Compare with previous period {prevLabel && <em>({prevLabel})</em>}
+            </label>
+          </div>
+        </div>
+      </section>
+
+      {/* HEADLINE STATS */}
+      <section className="headline-grid">
+        <div className="stat-card stat-primary">
+          <div className="stat-label">Net Position</div>
+          <div className={`stat-value ${stats.net >= 0 ? 'pos' : 'neg'}`}>{fmt(stats.net)}</div>
+          <div className="stat-meta">
+            {stats.net >= 0 ? <IconUp size={12} /> : <IconDown size={12} />}
+            <span>Savings rate: {stats.savingsRate.toFixed(1)}%</span>
+          </div>
+        </div>
+        <StatCard label="Income" value={stats.income} prev={prevStats.income} compare={compareEnabled} prevLabel={prevLabel} positive />
+        <StatCard label="Expenditure" value={stats.expense} prev={prevStats.expense} compare={compareEnabled} prevLabel={prevLabel} positive={false} />
+        <div className="stat-card">
+          <div className="stat-label">Transactions · Avg.</div>
+          <div className="stat-value">{stats.expenseCount}</div>
+          <div className="stat-meta">{fmt(stats.avgExpense)} per expense</div>
+        </div>
+      </section>
+
+      {/* COMPARISON BLOCK */}
+      {compareEnabled && prevStart && (
+        <section className="comparison-grid" style={{ marginBottom: 28 }}>
+          <div className="comp-block">
+            <div className="comp-label">Current Period</div>
+            <div className="comp-period">{rangeLabel}</div>
+            <div className="comp-stat"><span className="comp-stat-l">Income</span><span className="comp-stat-r" style={{ color: 'var(--green)' }}>{fmt(stats.income)}</span></div>
+            <div className="comp-stat"><span className="comp-stat-l">Expense</span><span className="comp-stat-r" style={{ color: 'var(--red)' }}>{fmt(stats.expense)}</span></div>
+            <div className="comp-stat"><span className="comp-stat-l">Net</span><span className="comp-stat-r">{fmt(stats.net)}</span></div>
+            <div className="comp-stat"><span className="comp-stat-l">Transactions</span><span className="comp-stat-r">{filtered.length}</span></div>
+          </div>
+          <div className="comp-block">
+            <div className="comp-label">Previous Period</div>
+            <div className="comp-period">{prevLabel}</div>
+            <div className="comp-stat"><span className="comp-stat-l">Income</span><span className="comp-stat-r" style={{ color: 'var(--green)' }}>{fmt(prevStats.income)}</span></div>
+            <div className="comp-stat"><span className="comp-stat-l">Expense</span><span className="comp-stat-r" style={{ color: 'var(--red)' }}>{fmt(prevStats.expense)}</span></div>
+            <div className="comp-stat"><span className="comp-stat-l">Net</span><span className="comp-stat-r">{fmt(prevStats.net)}</span></div>
+            <div className="comp-stat"><span className="comp-stat-l">Transactions</span><span className="comp-stat-r">{previousFiltered.length}</span></div>
+          </div>
+        </section>
+      )}
+
+      {/* TABS */}
+      <div className="tabs">
+        {[
+          ['overview', 'Overview'],
+          ['categories', 'Category Report'],
+          ['trends', 'Trends'],
+          ['ledger', 'Ledger'],
+        ].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} className={`tab ${tab === k ? 'active' : ''}`}>{label}</button>
+        ))}
+      </div>
+
+      {/* TAB CONTENT */}
+      {tab === 'overview' && (
+        <section className="content-grid">
+          <article className="panel panel-wide">
+            <header className="panel-head">
+              <h2>Expenditure by Category</h2>
+              <span className="panel-sub">A composition of outflows</span>
+            </header>
+            <div className="panel-body two-col">
+              <div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={categoryBreakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={110} paddingAngle={2} dataKey="value" stroke={PARCH} strokeWidth={2}>
+                      {categoryBreakdown.map((entry, i) => <Cell key={i} fill={getCategoryColor(entry.name)} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: PARCH, border: `1px solid ${INK}`, borderRadius: 0, fontFamily: 'Spectral, serif', fontSize: 13 }} formatter={(v) => fmt(v)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="cat-legend">
+                {categoryBreakdown.map((c, i) => (
+                  <div key={i} className="cat-row">
+                    <div className="cat-row-l">
+                      <span className="cat-dot" style={{ background: getCategoryColor(c.name) }} />
+                      <span className="cat-name">{c.name}</span>
+                    </div>
+                    <div className="cat-row-r">
+                      <span className="cat-amt">{fmtCompact(c.value)}</span>
+                      <span className="cat-pct">{c.pct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                ))}
+                {categoryBreakdown.length === 0 && <em style={{ color: 'var(--muted)' }}>No expenses in this range.</em>}
+              </div>
+            </div>
+          </article>
+
+          <article className="panel">
+            <header className="panel-head">
+              <h2>Top Outlays</h2>
+              <span className="panel-sub">Largest individual expenses</span>
+            </header>
+            <div className="panel-body">
+              <ol className="merchant-list">
+                {topMerchants.map((m, i) => (
+                  <li key={i} className="merchant-row">
+                    <span className="merchant-rank">{String(i + 1).padStart(2, '0')}</span>
+                    <div className="merchant-info">
+                      <div className="merchant-name">{m.name}</div>
+                      <div className="merchant-meta">
+                        <span style={{ color: getCategoryColor(m.category) }}>● {m.category}</span>
+                        <span>· {m.count}×</span>
+                      </div>
+                    </div>
+                    <div className="merchant-amt">{fmtCompact(m.total)}</div>
+                  </li>
+                ))}
+                {topMerchants.length === 0 && <em style={{ color: 'var(--muted)' }}>No entries.</em>}
+              </ol>
+            </div>
+          </article>
+
+          {dailyPattern && (
+            <article className="panel panel-full">
+              <header className="panel-head">
+                <h2>Daily Pattern</h2>
+                <span className="panel-sub">Spending across each day in the selected range</span>
+              </header>
+              <div className="panel-body">
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={dailyPattern} margin={{ top: 20, right: 30, left: 20, bottom: 30 }}>
+                    <CartesianGrid strokeDasharray="2 4" stroke={MUTED} opacity={0.3} vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 10 }} stroke={INK} angle={-30} textAnchor="end" height={50} />
+                    <YAxis tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 12 }} stroke={INK} tickFormatter={fmtCompact} />
+                    <Tooltip contentStyle={{ background: PARCH, border: `1px solid ${INK}`, borderRadius: 0, fontFamily: 'Spectral, serif' }} formatter={(v) => fmt(v)} />
+                    <Bar dataKey="expense" fill={RED} radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </article>
+          )}
+        </section>
+      )}
+
+      {tab === 'categories' && (
+        <section className="content-grid">
+          <article className="panel panel-full">
+            <header className="panel-head">
+              <h2>Category Analysis</h2>
+              <span className="panel-sub">Detailed breakdown of every category of expense</span>
+            </header>
+            <div className="panel-body">
+              <ResponsiveContainer width="100%" height={380}>
+                <BarChart data={categoryBreakdown} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke={MUTED} opacity={0.3} vertical={false} />
+                  <XAxis dataKey="name" angle={-35} textAnchor="end" height={70} tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 12 }} stroke={INK} />
+                  <YAxis tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 12 }} stroke={INK} tickFormatter={fmtCompact} />
+                  <Tooltip contentStyle={{ background: PARCH, border: `1px solid ${INK}`, borderRadius: 0, fontFamily: 'Spectral, serif' }} formatter={(v) => fmt(v)} cursor={{ fill: INK, opacity: 0.05 }} />
+                  <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+                    {categoryBreakdown.map((entry, i) => <Cell key={i} fill={getCategoryColor(entry.name)} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
+
+          <article className="panel panel-full">
+            <header className="panel-head">
+              <h2>Category Ledger</h2>
+              <span className="panel-sub">Sorted by total expenditure</span>
+            </header>
+            <div className="panel-body">
+              <table className="ledger-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th className="num">Total</th>
+                    <th className="num">Share</th>
+                    <th className="num">Transactions</th>
+                    <th className="num">Avg.</th>
+                    <th>Distribution</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categoryBreakdown.map((c, i) => {
+                    const txns = filtered.filter(t => t.type === 'expense' && t.category === c.name);
+                    return (
+                      <tr key={i}>
+                        <td>
+                          <span className="cat-dot" style={{ background: getCategoryColor(c.name) }} />
+                          <strong>{c.name}</strong>
+                        </td>
+                        <td className="num">{fmt(c.value)}</td>
+                        <td className="num">{c.pct.toFixed(1)}%</td>
+                        <td className="num">{txns.length}</td>
+                        <td className="num">{fmt(c.value / Math.max(txns.length, 1))}</td>
+                        <td>
+                          <div className="dist-bar">
+                            <div className="dist-fill" style={{ width: `${c.pct}%`, background: getCategoryColor(c.name) }} />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      )}
+
+      {tab === 'trends' && (
+        <section className="content-grid">
+          <article className="panel panel-full">
+            <header className="panel-head">
+              <h2>Monthly Trajectory</h2>
+              <span className="panel-sub">Income against expenditure, month by month (all data)</span>
+            </header>
+            <div className="panel-body">
+              <ResponsiveContainer width="100%" height={340}>
+                <AreaChart data={monthlyTrend} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+                  <defs>
+                    <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={GREEN} stopOpacity={0.4} />
+                      <stop offset="100%" stopColor={GREEN} stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={RED} stopOpacity={0.4} />
+                      <stop offset="100%" stopColor={RED} stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke={MUTED} opacity={0.3} vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 12 }} stroke={INK} />
+                  <YAxis tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 12 }} stroke={INK} tickFormatter={fmtCompact} />
+                  <Tooltip contentStyle={{ background: PARCH, border: `1px solid ${INK}`, borderRadius: 0, fontFamily: 'Spectral, serif' }} formatter={(v) => fmt(v)} />
+                  <Legend wrapperStyle={{ fontFamily: 'Spectral, serif', paddingTop: 10 }} />
+                  <Area type="monotone" dataKey="income" stroke={GREEN} strokeWidth={2} fill="url(#incomeGrad)" name="Income" />
+                  <Area type="monotone" dataKey="expense" stroke={RED} strokeWidth={2} fill="url(#expenseGrad)" name="Expense" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
+
+          <article className="panel panel-full">
+            <header className="panel-head">
+              <h2>Net Savings by Month</h2>
+              <span className="panel-sub">Surplus or deficit per period</span>
+            </header>
+            <div className="panel-body">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={monthlyTrend} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke={MUTED} opacity={0.3} vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 12 }} stroke={INK} />
+                  <YAxis tick={{ fill: INK, fontFamily: 'Spectral, serif', fontSize: 12 }} stroke={INK} tickFormatter={fmtCompact} />
+                  <Tooltip contentStyle={{ background: PARCH, border: `1px solid ${INK}`, borderRadius: 0, fontFamily: 'Spectral, serif' }} formatter={(v) => fmt(v)} />
+                  <Bar dataKey="net" radius={[2, 2, 0, 0]}>
+                    {monthlyTrend.map((m, i) => <Cell key={i} fill={m.net >= 0 ? GREEN : RED} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
+        </section>
+      )}
+
+      {tab === 'ledger' && (
+        <section className="content-grid">
+          <article className="panel panel-full">
+            <header className="panel-head">
+              <h2>Complete Ledger</h2>
+              <span className="panel-sub">{filtered.length} entries, sorted by date</span>
+            </header>
+            <div className="panel-body">
+              <div className="ledger-wrap">
+                <table className="ledger-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Category</th>
+                      <th className="num">Amount</th>
+                      <th>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...filtered].sort((a, b) => b.date - a.date).map((t) => (
+                      <tr key={t.id}>
+                        <td className="mono">{t.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}</td>
+                        <td>{t.description || <em style={{ color: 'var(--muted)' }}>—</em>}</td>
+                        <td>
+                          <span className="cat-dot" style={{ background: getCategoryColor(t.category) }} />
+                          {t.category}
+                        </td>
+                        <td className={`num ${t.type === 'income' ? 'pos' : 'neg'}`}>
+                          {t.type === 'income' ? '+' : '−'} {fmt(t.amount)}
+                        </td>
+                        <td><span className={`type-tag ${t.type}`}>{t.type}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </article>
+        </section>
+      )}
+
+      <footer className="footer">
+        <span className="rule" />
+        <span>Compiled with diligence · {filtered.length} entries on record</span>
+        <span className="rule" />
+      </footer>
+    </div>
+  );
+}
+
+// Stat card with optional comparison
+function StatCard({ label, value, prev, compare, prevLabel, positive }) {
+  const change = (compare && prev > 0) ? ((value - prev) / prev) * 100 : null;
+  const goodDirection = positive ? (change >= 0) : (change <= 0);
+  return (
+    <div className="stat-card">
+      <div className="stat-label">{label}</div>
+      <div className={`stat-value ${positive ? 'pos' : 'neg'}`}>{fmt(value)}</div>
+      {change !== null && (
+        <div className={`stat-meta ${goodDirection ? 'pos' : 'neg'}`}>
+          {change >= 0 ? <IconUp size={12} /> : <IconDown size={12} />}
+          <span>{Math.abs(change).toFixed(1)}% vs prior</span>
+        </div>
+      )}
+      {change === null && <div className="stat-meta">—</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<FinanceTracker />);
+</script>
+</body>
+</html>
